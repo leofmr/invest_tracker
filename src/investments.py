@@ -4,10 +4,15 @@ from datetime import date, datetime
 class Investments:
     """Primeira coisa que eu preciso identificar é a de quantidade. 
     """    
-    
+    date_format = "%d/%m/%Y"
+
     def __init__(self):
-        self.cash_flow = pd.DataFrame(columns=["date", "value"])
-        self.current_values = pd.DataFrame(columns=["date", "value"])
+        
+        self.cash_flow = pd.DataFrame({"date": pd.Series([], dtype="datetime64[ns]"),
+                                       "value": pd.Series([], dtype="float")})
+                                       
+        self.current_values = pd.DataFrame({"date": pd.Series([], dtype="datetime64[ns]"),
+                                            "value": pd.Series([], dtype="float")})
 
     
     def withdraw(self, value: float, invest_date=None):
@@ -25,6 +30,34 @@ class Investments:
     def update_value(self, value, measure_date=None):
         reg = self._format_reg(reg_date=measure_date, value=value, is_positive=True)
         self.current_values = self.current_values.append(reg, ignore_index=True)
+
+    def roi(self, start_date=None, end_date=None):
+        """For a selected period, compute the ROI of the investment (corrected for cash flows)
+        Following this reference:
+            - https://www.fool.com/about/how-to-calculate-investment-returns/
+    
+        Args:
+            start_date (str, optional): Start date of the period. Defaults to None.
+            end_date (str, optional): End date of the period. Defaults to None.
+
+        Returns:
+            float: The Return on Investment for the selected period
+        """        
+        start_date = datetime.strptime(start_date, self.date_format).date()
+        end_date = datetime.strptime(end_date, self.date_format).date()
+        
+        values_series = self.current_values.groupby("date")['value'].mean().loc[start_date:end_date].sort_index()
+        flows_series = self.cash_flow.groupby("date")["value"].sum().loc[start_date:end_date].sort_index()
+        
+        starting_balance = values_series.iloc[0]
+        ending_balance = values_series.iloc[-1] 
+        net_balance = flows_series.sum()
+
+        return ((ending_balance - net_balance) / starting_balance) - 1
+
+
+
+
     
     @staticmethod
     def _format_reg(reg_date, value, is_positive):
