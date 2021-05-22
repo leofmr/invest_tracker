@@ -67,5 +67,16 @@ class Investments:
             return pd.Timestamp(**date_dict)
 
     def __repr__(self) -> str:
-        total_invest = self.cash_flow['value'].sum()
-        return f'Total investment: {total_invest}'
+        net_invest = self.cash_flow.sum()
+        initial_date = self.cash_flow.index.min().strftime('%d-%m-%Y')
+        accumulated_roi = self.roi()
+        last_reg = self.current_values.last("1D")
+        last_value = last_reg.iloc[0]
+        last_date = last_reg.index[0].strftime('%d-%m-%Y')
+
+        net_investment_str = f"Net investment of R${net_invest:,.2f}"
+        most_recent_value_str = f"With a current value of R${last_value:,.2f} in {last_date}"
+        accumulated_roi_str = f"And a accumulated ROI of {accumulated_roi:.2%} since {initial_date}"
+        repr_list = [net_investment_str, most_recent_value_str, accumulated_roi_str]
+
+        return "\n".join(repr_list) 
