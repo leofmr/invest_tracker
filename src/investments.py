@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 class Investments:
     """Primeira coisa que eu preciso identificar é a de quantidade. 
@@ -43,6 +43,9 @@ class Investments:
         Returns:
             float: The Return on Investment for the selected period
         """
+        
+
+        
         if start_date is None:
             start_date = self.cash_flow["date"].min()
         else:        
@@ -54,6 +57,7 @@ class Investments:
             end_date = datetime.strptime(end_date, self.date_format).date()
         
         values_series = self.current_values.groupby("date")['value'].mean().loc[start_date:end_date].sort_index()
+        start_date += timedelta(days=1)
         flows_series = self.cash_flow.groupby("date")["value"].sum().loc[start_date:end_date].sort_index()
         
         starting_balance = values_series.iloc[0]
@@ -61,9 +65,6 @@ class Investments:
         net_balance = flows_series.sum()
 
         return ((ending_balance - net_balance) / starting_balance) - 1
-
-
-
 
     
     @staticmethod
