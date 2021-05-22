@@ -42,9 +42,16 @@ class Investments:
 
         Returns:
             float: The Return on Investment for the selected period
-        """        
-        start_date = datetime.strptime(start_date, self.date_format).date()
-        end_date = datetime.strptime(end_date, self.date_format).date()
+        """
+        if start_date is None:
+            start_date = self.cash_flow["date"].min()
+        else:        
+            start_date = datetime.strptime(start_date, self.date_format).date()
+        
+        if end_date is None:
+            end_date = self.current_values["date"].max()
+        else:
+            end_date = datetime.strptime(end_date, self.date_format).date()
         
         values_series = self.current_values.groupby("date")['value'].mean().loc[start_date:end_date].sort_index()
         flows_series = self.cash_flow.groupby("date")["value"].sum().loc[start_date:end_date].sort_index()
