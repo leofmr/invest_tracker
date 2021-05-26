@@ -1,16 +1,14 @@
 # invest_tracker
 A class that can be used to track investment
 
-This will be part of a project for the Udacity Data Science Nanodegree.
+## Motivation
 
-# Motivation:
-This package should be helpful in the investment management. That is a personal problem. Since I am starting to keep control of my finance, I decided to develop a tool for that. It is important to notice that this package was developed keeping in mind my choices of investment, that are limited to those in the Brazilian market.
+This package was a initiative to help me to have a better knowledge about my own investments.
+The package is still in a initial development phase containing only a Asset class that can be used
+to register and track informations and rentability about investments in investments funds.
 
-This package should help to keep registers of investments, in order having a better overview of the evolution of all the assets, and some knowledge in what type of assets I am investing.
+## Usage
 
-As such it must have some core functionalities:
-  - store assets type and their properties (type, sector, liquidity...)
-  - asset values increase
-    - ideally should be used some kind of API to track investments values automatically.
-  - display graphically assets evolution
-  - compute rentability
+It uses investpy package to scrap investment funds historical data. For it to function correctly
+the code of the asset must be provided when instantiating the class. The code can be obtained in
+the investing.com site by locating the characters in parenthesis after the asset name.
