@@ -1,60 +1,96 @@
 import pandas as pd
-from datetime import date, datetime, timedelta
+import matplotlib.pyplot as plt
+import investpy
 
 class Investments:
     """Primeira coisa que eu preciso identificar é a de quantidade. 
     """    
 
-    def __init__(self):
+    def __init__(self,code, value, date, name=None):
         
-        index = pd.DatetimeIndex([], name="date")
-        self.cash_flow = pd.Series(data=[], index=index , dtype="float64", name="cash_flow")
+        self.code = code
+        self.name = name
 
-        self.current_values = pd.Series(data=[], index=index, dtype="float64", name="current_values")
-    
+        today = pd.Timestamp.today().strftime(format="%d/%m/%Y")
+        self.historical_values = self.get_historical_values(from_date=date, to_date=today)
+
+        self.transactions = pd.DataFrame(columns=["values", "quantities", "price"],
+                                         index=pd.DatetimeIndex([], name="date"))
+
+        self.invest(value=value, invest_date=date)
+
+        
+    def get_historical_values(self, from_date, to_date):
+        engine = investpy.search_quotes(text=self.code, products=["funds"], countries=["brazil"])
+        closings = engine.retrieve_historical_data(from_date=from_date, to_date=to_date)["Close"]
+        return closings
+
+    def update_historical_data(self, ref_date=None):
+        max_date = self.historical_values.index.max()
+        min_date = self.historical_values.index.min()
+        today_date = pd.Timestamp.today()
+        ref_date = today_date if ref_date is None else ref_date
+        
+        if ref_date > max_date:
+            start_date = max_date + pd.Timedelta(days=1)
+            end_date = today_date 
+        elif ref_date < min_date:
+            end_date = min_date - pd.Timedelta(days=1)
+            start_date = ref_date
+        else:
+            print("Não há necessidade de atualizar os dados")
+            return self.historical_values
+
+        start_date = start_date.strftime(format="%d/%m/%Y")
+        end_date = end_date.strftime(format="%d/%m/%Y")
+        
+        additional_data = self.get_historical_values(start_date, end_date)
+        self.historical_values =  self.historical_values.append(additional_data).sort_index()
+
+
     def withdraw(self, value: float, invest_date=None):
-        timestamp_date = self._format_date(invest_date)
-        self.cash_flow.loc[timestamp_date] = -value
+        self._update_transactions(value=-value, date=invest_date)
         
     def invest(self, value: float, invest_date=None):
-        timestamp_date = self._format_date(invest_date)
-        self.cash_flow.loc[timestamp_date] = value
+        self._update_transactions(value=value, date=invest_date)
 
-    def update_value(self, value, measure_date=None):
-        timestamp_date = self._format_date(measure_date)
-        self.current_values.loc[timestamp_date] = value
-    
 
-    def roi(self, start_date=None, end_date=None):
-        """For a selected period, compute the ROI of the investment (corrected for cash flows)
-        Following this reference:
-            - https://www.fool.com/about/how-to-calculate-investment-returns/
-    
-        Args:
-            start_date (str, optional): Start date of the period. Defaults to None.
-            end_date (str, optional): End date of the period. Defaults to None.
-
-        Returns:
-            float: The Return on Investment for the selected period
-        """
+    def _update_transactions(self, value, date):
+        timestamp_date = self._format_date(date)
+        if timestamp_date not in self.historical_values.index:
+            self.update_historical_data(ref_date=timestamp_date)
         
+        price = self.historical_values.loc[timestamp_date]
+        quantity = value / price
+        self.transactions.loc[timestamp_date, ["values", "quantities", "price"]] = [value, quantity, price]
 
-        start_date = (self.cash_flow.index.min() if start_date is None
-                      else self._format_date(start_date))
-        
-        end_date = (self.current_values.index.max() if end_date is None
-                    else self._format_date(end_date))
 
-        value_series = self.current_values.loc[start_date:end_date]
+    def get_comulative_period_roi(self, start, end):
+        values_evol = (self.transactions.quantities.
+                       reindex(self.historical_values.index).
+                       fillna(0).cumsum().
+                       mul(self.historical_values).loc[start:end])
         
-        start_date += pd.Timedelta(days=1)
-        flow_series = self.cash_flow.loc[start_date:end_date]
+        transactions =  self.transactions["values"].reindex(values_evol.index).fillna(0)
+        transactions.iloc[0] = values_evol.iloc[0]
+        transactions = transactions.cumsum()
         
-        starting_balance = value_series.first("1D").iloc[0]
-        ending_balance = value_series.last("1D") .iloc[0]
-        net_balance = flow_series.sum()
+        return values_evol.div(transactions).sub(1)
 
-        return ((ending_balance - net_balance) / starting_balance) - 1
+    def get_periodic_roi(self, period='M'):
+        df = (self.transactions.reindex(self.historical_values.index).
+              fillna(0)[['values', 'quantities']].join(self.historical_values))
+        df['quantities'] = df['quantities'].cumsum()
+        df['cum_values'] = df['quantities'].mul(df['Close'])
+        
+        resampled_df = df.resample(period).agg({'values': 'sum', 'cum_values': 'last'})
+        resampled_df['lag_cum_values'] = resampled_df['cum_values'].shift()
+        resampled_df = resampled_df.iloc[1:]
+        
+        return (resampled_df['cum_values'].
+                sub(resampled_df['values']).
+                div(resampled_df['lag_cum_values']).
+                sub(1))
 
     @staticmethod
     def _format_date(date_str):
