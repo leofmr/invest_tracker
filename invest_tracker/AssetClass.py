@@ -141,9 +141,9 @@ class Asset:
 
         Args:
             from_date (str): start date in the format %d/%m/%Y
-            to_date (str, optional): end date in the format %d/%m/%Y. Default None
+            to_date (str, optional): end date in the format %d/%m/%Y. Defaults to None
             period (str, optional): periodic interval for the resampling of
-            the series. Default "M".
+            the series. Defaults to "M".
 
         Returns:
             pd.Series: A pandas series with the cummulated ROI over the selected period
@@ -179,9 +179,9 @@ class Asset:
 
         Args:
             from_date(str): start date in the format %d/%m/%Y
-            to_date (str, optional): end date in the format %d/%m/%Y. Default None
+            to_date (str, optional): end date in the format %d/%m/%Y. Defaults to None
             period (str, optional): periodic interval for the resampling of
-            the series. Default "M".
+            the series. Defaults to "M".
 
         Returns:
             pd.Series: A pandas series with the periodic ROI
@@ -208,6 +208,39 @@ class Asset:
                 div(resampled_df['lag_cum_values']).
                 sub(1))
 
+    def plot_roi_evolution(self, from_date, to_date=None, period="M", figsize=(9, 7)):
+        """Plot the assets' evolution of cummulative and periodic ROI, from the from_date
+        to the to_date.
+
+        Args:
+            from_date (str): start date in the format %d/%m/%Y
+            to_date (str, optional): end date in the format %d/%m/%Y. Defaults to None
+            period (str, optional): periodic interval for the resampling of
+            the series. Defaults to "M".
+            figsize(tupple (int, int), optional): tupple indicating the figsize
+            of the plot. Defaults to (9, 7)
+        """
+
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=figsize)
+        # https://stackoverflow.com/questions/8248467/matplotlib-tight-layout-doesnt-take-into-account-figure-suptitle
+        fig.tight_layout(rect=[0, 0.03, 1, .95])
+        
+        name = "Asset" if self.name is None else self.name
+        fig.suptitle(f'{name} cummulative and periodic ROI')
+
+        # cummulative ROI subplot
+        self.get_cummulative_period_roi(from_date, to_date, period).mul(100).plot(ax=ax1)
+        ax1.axhline(y=0, linestyle='--', color='grey')
+        ax1.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
+        ax1.set_ylabel('Cumm. ROI')
+
+        # periodic ROI subplot
+        self.get_periodic_roi(from_date, to_date, period).mul(100).plot(ax=ax2)
+        ax2.axhline(y=0, linestyle='--', color='grey')
+        ax2.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
+        ax2.set_ylabel('Period. ROI')
+
+        plt.show()
 
 
 
