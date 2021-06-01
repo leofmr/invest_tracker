@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import investpy
 
 # in future versions this class should be inherited by other
@@ -130,7 +131,7 @@ class Asset:
         self.transactions.loc[timestamp_date, ["values", "quantities", "price"]] = [value, quantity, price]
 
 
-    def get_cummulative_period_roi(self, start, end):
+    def get_cummulative_period_roi(self, from_date, to_date=None, period='M'):
         """Get the cummulative ROI from a start period to a end period.
         The cummulative ROI is a series of a accumulated ROI.
 
@@ -140,19 +141,28 @@ class Asset:
 
         Returns:
             pd.Series: A pandas series with the cummulated ROI over the selected period
-        """        
+        """
+
+        from_timestamp =  self._format_date(from_date)
+        to_timestamp =  self._format_date(to_date)
+
+        selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
+        time_span = selected_historical_values.index
+
         values_evol = (self.transactions.quantities.
-                       reindex(self.historical_values.index).
+                       reindex(time_span).
                        fillna(0).cumsum().
-                       mul(self.historical_values).loc[start:end])
+                       mul(self.historical_values).loc[from_timestamp:to_timestamp])
         
         transactions =  self.transactions["values"].reindex(values_evol.index).fillna(0)
         transactions.iloc[0] = values_evol.iloc[0]
         transactions = transactions.cumsum()
         
-        return values_evol.div(transactions).sub(1)
+        return values_evol.div(transactions).sub(1).resample(period).last()
 
-    def get_periodic_roi(self, period='M'):
+        
+
+    def get_periodic_roi(self, from_date, to_date=None, period='M'):
         """Get the cummulative ROI for a specific periodic definition.
         The periodic definition follows the pandas resample paramter
         configuration.
@@ -165,8 +175,15 @@ class Asset:
             pd.Series: A pandas series with the periodic ROI
         """
 
-        df = (self.transactions.reindex(self.historical_values.index).
-              fillna(0)[['values', 'quantities']].join(self.historical_values))
+        from_timestamp =  self._format_date(from_date)
+        to_timestamp =  self._format_date(to_date)
+
+        selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
+        time_span = selected_historical_values.index
+
+        df = (self.transactions.reindex(time_span).
+              fillna(0)[['values', 'quantities']].join(selected_historical_values))
+
         df['quantities'] = df['quantities'].cumsum()
         df['cum_values'] = df['quantities'].mul(df['Close'])
         
@@ -178,6 +195,9 @@ class Asset:
                 sub(resampled_df['values']).
                 div(resampled_df['lag_cum_values']).
                 sub(1))
+
+
+
 
     @staticmethod
     def _format_date(date_str):
