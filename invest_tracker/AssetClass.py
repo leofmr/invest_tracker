@@ -158,13 +158,18 @@ class Asset:
         values_evol = (self.transactions.quantities.
                        reindex(self.historical_values.index).
                        fillna(0).cumsum().
-                       mul(self.historical_values).loc[from_timestamp:to_timestamp])
+                       mul(self.historical_values).
+                       loc[from_timestamp:to_timestamp].
+                       resample(period).last())
         
-        transactions =  self.transactions["values"].reindex(values_evol.index).fillna(0)
+        transactions =  (self.transactions["values"].
+                         resample(period).last().
+                         reindex(values_evol.index).fillna(0))
+
         transactions.iloc[0] = values_evol.iloc[0]
         transactions = transactions.cumsum()
         
-        return values_evol.div(transactions).sub(1).resample(period).last()
+        return values_evol.div(transactions).sub(1)
 
 
 
