@@ -152,11 +152,11 @@ class Asset:
         from_timestamp =  self._format_date(from_date)
         to_timestamp =  self._format_date(to_date)
 
-        selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
-        time_span = selected_historical_values.index
+        #selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
+        #time_span = selected_historical_values.index
 
         values_evol = (self.transactions.quantities.
-                       reindex(time_span).
+                       reindex(self.historical_values.index).
                        fillna(0).cumsum().
                        mul(self.historical_values).loc[from_timestamp:to_timestamp])
         
@@ -190,16 +190,19 @@ class Asset:
         from_timestamp =  self._format_date(from_date)
         to_timestamp =  self._format_date(to_date)
 
-        selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
-        time_span = selected_historical_values.index
+        #selected_historical_values = self.historical_values.loc[from_timestamp:to_timestamp]
+        #time_span = selected_historical_values.index
 
-        df = (self.transactions.reindex(time_span).
-              fillna(0)[['values', 'quantities']].join(selected_historical_values))
+        df = (self.transactions.reindex(self.historical_values.index).
+              fillna(0)[['values', 'quantities']].join(self.historical_values))
 
         df['quantities'] = df['quantities'].cumsum()
         df['cum_values'] = df['quantities'].mul(df['Close'])
         
-        resampled_df = df.resample(period).agg({'values': 'sum', 'cum_values': 'last'})
+        resampled_df = (df.loc[from_timestamp:to_timestamp].
+                        resample(period).
+                        agg({'values': 'sum', 'cum_values': 'last'}))
+                        
         resampled_df['lag_cum_values'] = resampled_df['cum_values'].shift()
         resampled_df = resampled_df.iloc[1:]
         
