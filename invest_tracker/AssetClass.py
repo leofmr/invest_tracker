@@ -209,7 +209,7 @@ class Asset:
                         agg({'values': 'sum', 'cum_values': 'last'}))
                         
         resampled_df['lag_cum_values'] = resampled_df['cum_values'].shift()
-        resampled_df = resampled_df.iloc[1:]
+        resampled_df = resampled_df
         
         return (resampled_df['cum_values'].
                 sub(resampled_df['values']).
