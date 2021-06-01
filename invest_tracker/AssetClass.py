@@ -133,11 +133,17 @@ class Asset:
 
     def get_cummulative_period_roi(self, from_date, to_date=None, period='M'):
         """Get the cummulative ROI from a start period to a end period.
-        The cummulative ROI is a series of a accumulated ROI.
+        The cummulative ROI is a series of a accumulated ROI. The cummulative
+        ROI is resampled according to a period definition:
+          - M: Monthly
+          - W: Weekly
+          - Y: Yearly
 
         Args:
-            start (start): start date in the format %d/%m/%Y
-            end (start): end date in the format %d/%m/%Y
+            from_date (str): start date in the format %d/%m/%Y
+            to_date (str, optional): end date in the format %d/%m/%Y. Default None
+            period (str, optional): periodic interval for the resampling of
+            the series. Default "M".
 
         Returns:
             pd.Series: A pandas series with the cummulated ROI over the selected period
@@ -160,16 +166,22 @@ class Asset:
         
         return values_evol.div(transactions).sub(1).resample(period).last()
 
-        
+
 
     def get_periodic_roi(self, from_date, to_date=None, period='M'):
         """Get the cummulative ROI for a specific periodic definition.
         The periodic definition follows the pandas resample paramter
-        configuration.
+        configuration. The periodic ROI is resampled according to a
+        period definition:
+          - M: Monthly
+          - W: Weekly
+          - Y: Yearly
 
         Args:
-            period (str, optional): periodic interval, can be: 'D', 'W', 'M' and 'Y'.
-            And also numeric variations, '1D', '2D', 3D', '4M', etc,.  Defaults to 'M'.
+            from_date(str): start date in the format %d/%m/%Y
+            to_date (str, optional): end date in the format %d/%m/%Y. Default None
+            period (str, optional): periodic interval for the resampling of
+            the series. Default "M".
 
         Returns:
             pd.Series: A pandas series with the periodic ROI
